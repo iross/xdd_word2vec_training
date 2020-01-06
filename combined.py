@@ -117,7 +117,7 @@ class DocumentStream(object):
     def __init__(self, docids_name, buffer_size=200):
         self.docids_name = docids_name
         self.count = sum(1 for line in open(docids_name))
-        self.buffer_size=200
+        self.buffer_size=buffer_size
 
     def __iter__(self):
         with open(self.docids_name) as fin:
@@ -145,9 +145,10 @@ class DocumentStream(object):
                                 contents = doc["fields"]["contents"]
                                 if isinstance(contents, list):
                                     contents = contents[0]
-                                sentences = sent_tokenize(contents)
+#                                sentences = sent_tokenize(contents)
                             except UnicodeDecodeError: continue
-                            document = preprocess(' '.join(gensim.utils.simple_preprocess(contents)))
+#                            document = preprocess(' '.join(gensim.utils.simple_preprocess(contents)))
+                            document = preprocess(contents)
 #                            print(f"\tYielding {xddid}")
                             yield gensim.models.doc2vec.TaggedDocument(document, [xddid])
                     docbuffer = []
@@ -163,22 +164,29 @@ class Documents(object):
                 try:
                     sentences = sent_tokenize(contents)
                 except UnicodeDecodeError: continue
-                document = preprocess(' '.join(gensim.utils.simple_preprocess(contents)))
+#                document = preprocess(' '.join(gensim.utils.simple_preprocess(contents)))
+                document = preprocess(contents)
                 yield gensim.models.doc2vec.TaggedDocument(document, [xddid])
 
 stop_words = stopwords.words('english')
 
 def preprocess(line):
     line = word_tokenize(line)  # Split into words.
-    line = [w.lower() for w in line]  # Lower the text.
-#    line = [w for w in line if not w in stop_words]  # Remove stopwords
-#    line = [w for w in line if w.isalpha()] # Remove numbers and punctuation
+    if CONFIG['lower']:
+        line = [w.lower() for w in line]  # Lower the text.
+    if CONFIG['remove_stopwords']:
+        line = [w for w in line if not w in stop_words]  # Remove stopwords
+    if CONFIG['remove_nonalpha']:
+        line = [w for w in line if w.isalpha()] # Remove numbers and punctuation
     return line
 
 
 ### Get word2vec parameters
 def parse_config(conf):
     global CONFIG
+    CONFIG['lower'] = conf['preprocessParameters'].getboolean('lower')
+    CONFIG['remove_stopwords'] = conf['preprocessParameters'].getboolean('remove_stopwords')
+    CONFIG['remove_nonalpha'] = conf['preprocessParameters'].getboolean('remove_nonalpha')
     CONFIG['vector_size'] = 	conf['word2vecParameters'].getint('vector_size')
     CONFIG['window_size'] = 	conf['word2vecParameters'].getint('window_size')
     CONFIG['min_count'] = 	conf['word2vecParameters'].getint('min_count')
@@ -299,13 +307,12 @@ def main():
     parser.add_argument("--output_name","-o",default=None,help="File to save model (default=None)")
     parser.add_argument("--doc2vec", "-v",default=False,help="Do that doc2vec")
     parser.add_argument("--word2vec", "-w",default=False,help="Do that word2vec")
-    parser.add_argument("--config", "-f",default="word2vec_default.ini",help="Externally defined config file")
+    parser.add_argument("--config", "-f",default="default.ini",help="Externally defined config file")
     args = parser.parse_args()
 
     if not os.path.exists(os.path.dirname(args.output_name)):
         os.makedirs(os.path.dirname(args.output_name))
 
-    import pdb; pdb.set_trace()
     config = configparser.ConfigParser()
     config.read(args.config)
     parse_config(config)
