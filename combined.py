@@ -191,11 +191,11 @@ def parse_config(conf):
     CONFIG['bigram_phrase_min_count'] = 	conf['bigramPhraseParameters'].getint('min_count')
     CONFIG['bigram_phrase_threshold'] = 	conf['bigramPhraseParameters'].getint('threshold')
     CONFIG['bigram_phrase_progress_per'] = 	conf['bigramPhraseParameters'].getint('progress_per')
-    CONFIG['bigram_phrase_delimiter'] = 	conf['bigramPhraseParameters'].getint('delimiter')
+    CONFIG['bigram_phrase_delimiter'] = 	conf['bigramPhraseParameters'].get('delimiter')
     CONFIG['trigram_phrase_min_count'] = 	conf['trigramPhraseParameters'].getint('min_count')
     CONFIG['trigram_phrase_threshold'] = 	conf['trigramPhraseParameters'].getint('threshold')
     CONFIG['trigram_phrase_progress_per'] = 	conf['trigramPhraseParameters'].getint('progress_per')
-    CONFIG['trigram_phrase_delimiter'] = 	conf['trigramPhraseParameters'].getint('delimiter')
+    CONFIG['trigram_phrase_delimiter'] = 	conf['trigramPhraseParameters'].get('delimiter')
 
 
 from gensim.models import Phrases
@@ -302,13 +302,17 @@ def main():
     parser.add_argument("--config", "-f",default="word2vec_default.ini",help="Externally defined config file")
     args = parser.parse_args()
 
+    if not os.path.exists(os.path.dirname(args.output_name)):
+        os.makedirs(os.path.dirname(args.output_name))
+
+    import pdb; pdb.set_trace()
     config = configparser.ConfigParser()
     config.read(args.config)
     parse_config(config)
     if args.corpus_file is None and args.docids_name is None:
         print("You must specify either the corpus file (-c) or docids file (-d)!")
         sys.exit(1)
-    shutil(config, args.output_name + "_config.ini")
+    shutil.copyfile(args.config, args.output_name + "_config.ini")
 
     global AUTH
     AUTH=HTTPBasicAuth(args.user, args.password)
